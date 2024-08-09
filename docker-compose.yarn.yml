@@ -19,7 +19,6 @@ services:
       - '7077:7077'
       - '8088:8088'
 
-
   spark-yarn-worker:
 #    container_name: da-spark-worker
     image: da-spark-yarn-image
@@ -42,3 +41,12 @@ services:
       - .env.spark
     ports:
       - '18080:18080'
+
+  yarn-hive-server:
+    container_name: da-spark-yarn-hive
+    image: da-spark-yarn-image
+    entrypoint: ['./entrypoint.sh', 'hive']
+    depends_on:
+      - spark-yarn-master
+    ports:
+      - '10000:10000'
