@@ -24,7 +24,6 @@ then
   hdfs dfs -mkdir -p /opt/spark/data
   echo "Created /opt/spark/data hdfs dir"
 
-
   # copy the data to the data HDFS directory
   hdfs dfs -copyFromLocal /opt/spark/data/* /opt/spark/data
   hdfs dfs -ls /opt/spark/data
@@ -48,6 +47,39 @@ then
 
   # start the spark history server
   start-history-server.sh
+
+elif [ "$SPARK_WORKLOAD" == "hive" ];
+then
+  hdfs namenode -format
+
+  # start the hive node processes
+  hdfs --daemon start datanode
+  yarn --daemon start nodemanager
+
+  # create hive directories
+  hdfs dfs -mkdir -p /tmp
+  echo "Created /tmp hdfs dir"
+
+  hdfs dfs -mkdir -p /user/hive
+  echo "Created /user/hive hdfs dir"
+
+  hdfs dfs -mkdir -p /user/hive/warehouse
+  echo "Created /user/hive/warehouse hdfs dir"
+
+  hdfs dfs -chmod g+w /user/hive
+  echo "Granted write to user group /user/hive hdfs dir"
+
+  hdfs dfs -chmod g+w /user/hive/warehouse
+  echo "Granted write to user group /user/hive hdfs dir"
+
+  echo "Setting DB Type"
+  $HIVE_HOME/bin/schematool -dbType derby -initSchema
+  echo "Set DB Type"
+
+  # start hiveserver2
+  echo "Starting hiveserver2"
+  $HIVE_HOME/bin/hiveserver2
+  echo "hiveserver2 Started with success"
 fi
 
 tail -f /dev/null
