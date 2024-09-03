@@ -4,16 +4,17 @@ from dotenv import load_dotenv
 import os
 import sys
 import time
-from logger import logging
+from logger.logger import logging
 import subprocess
 from hdfs import InsecureClient
 
-
-sys.path.append(os.path.abspath('/home/navarro/hadoop_spark/jobs/'))
-import logger
 load_dotenv()
 token = os.getenv('API_TOKEN')
+client_id = os.getenv('CLIENT_ID')
+client_secret = os.getenv('CLIENT_SECRET')
+
 url = 'https://us.api.blizzard.com/data/wow/connected-realm/3209/auctions?namespace=dynamic-us&locale=pt_BR'
+command = f'curl -u {client_id}:{client_secret} -d grant_type=client_credentials https://us.battle.net/oauth/token'
 
 if not token:
     logging.error('API token not found. Make sure its set in the .env')
@@ -33,9 +34,12 @@ try:
     auctions = all_information['auctions']
     data = json.dumps(auctions)
     logging.info('All items in the Azralon server auction house have been collected')
-    
+
 except requests.exceptions.JSONDecodeError:
     logging.error('API token is incorrect, please generate a new token and restart code-server')
+    result = subprocess.run(command, shell=True, text=True, capture_output=True)
+    lista = str(result)
+    breakpoint()
     exit()
 
 time = list(time.localtime())
@@ -60,25 +64,6 @@ try:
         logging.info('Data successfully uploaded to HDFS!')
     else:
         logging.error(f'Error sending data: Return code {process.returncode}')
-
-except subprocess.CalledProcessError as e:
-    logging.error(f'Error executing command: {e}')
-
-command_2 = f"hdfs dfs -get {hdfs_path} /opt/spark/data/auctions/azralon/bronze/"
-
-try:
-    process = subprocess.Popen(
-        ["docker", "exec", "-i", container_name, "bash", "-c", command_2],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True
-    )
-    stdout, stderr = process.communicate()
-
-    if process.returncode == 0:
-        logging.info('Data successfully retrieved from HDFS!')
-    else:
-        logging.error(f'Error retrieving data: {stderr.strip()}')
 
 except subprocess.CalledProcessError as e:
     logging.error(f'Error executing command: {e}')
