@@ -17,7 +17,7 @@ down:
 	docker compose down --volumes --remove-orphans
 
 down-yarn:
-	docker compose -f docker-compose.yarn.yml down --volumes --remove-orphans
+	docker compose -f docker-compose.yarn.yml down --remove-orphans
 
 run:
 	make down && docker compose up

@@ -11,6 +11,9 @@ services:
     volumes:
       - ./book_data:/opt/spark/data
       - ./spark_apps:/opt/spark/apps
+      - hdfs_namenode:/opt/hadoop/data/nameNode
+      - hdfs_datanode:/opt/hadoop/data/dataNode
+      - hdfs_flag_format:/opt/hadoop/data/flag
     env_file:
       - .env.spark
     ports:
@@ -42,11 +45,7 @@ services:
     ports:
       - '18080:18080'
 
-  yarn-hive-server:
-    container_name: da-spark-yarn-hive
-    image: da-spark-yarn-image
-    entrypoint: ['./entrypoint.sh', 'hive']
-    depends_on:
-      - spark-yarn-master
-    ports:
-      - '10000:10000'
+volumes:
+  hdfs_namenode:
+  hdfs_datanode:
+  hdfs_flag_format:

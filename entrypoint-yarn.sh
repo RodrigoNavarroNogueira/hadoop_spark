@@ -2,84 +2,84 @@
 
 SPARK_WORKLOAD=$1
 
-echo "SPARK_WORKLOAD: $SPARK_WORKLOAD"
+DATE=$(date "+%Y-%m-%d %H:%M:%S")
 
-/etc/init.d/ssh start
+echo "$DATE INFO entrypoint-yarn.sh: Initializing the container $SPARK_WORKLOAD."
+
+/etc/init.d/ssh start > /dev/null 2>&1
 
 if [ "$SPARK_WORKLOAD" == "master" ];
 then
-  hdfs namenode -format
+    # Caminho do arquivo de flag
+  FLAG_FILE="/opt/hadoop/data/flag/hdfs_format.flag"
+
+  # Verifica se o HDFS já foi formatado
+  if [ ! -f "$FLAG_FILE" ]; then  # SE O ARQUIVO N EXISTE..
+      echo "$DATE INFO entrypoint-yarn.sh: Formatting HDFS."
+      hdfs namenode -format > /dev/null 2>&1
+      
+      # Cria o arquivo de flag após a formatação
+      touch "$FLAG_FILE"
+      echo "$DATE INFO entrypoint-yarn.sh: HDFS formatted successfully."
+  else
+      echo "$DATE INFO entrypoint-yarn.sh: HDFS has already been formatted."
+  fi
 
   # start the master node processes
-  hdfs --daemon start namenode
+  hdfs --daemon start namenode >> /dev/null 2>&1
   hdfs --daemon start secondarynamenode
   yarn --daemon start resourcemanager
-
+  
   # create required directories
   while ! hdfs dfs -mkdir -p /spark-logs;
   do
-    echo "Failed creating /spark-logs hdfs dir"
+    echo "$DATE INFO entrypoint-yarn.sh: Failed creating /spark-logs hdfs dir"
   done
-  echo "Created /spark-logs hdfs dir"
+  echo "$DATE INFO entrypoint-yarn.sh: Created /spark-logs hdfs dir"
   hdfs dfs -mkdir -p /opt/spark/data
-  echo "Created /opt/spark/data hdfs dir"
+  echo "$DATE INFO entrypoint-yarn.sh: Created /opt/spark/data hdfs dir"
 
   # copy the data to the data HDFS directory
   hdfs dfs -copyFromLocal /opt/spark/data/* /opt/spark/data
-  hdfs dfs -ls /opt/spark/data
+
+  SAFEMODE_STATUS=$(hdfs dfsadmin -safemode get)
+
+  if [[ "$SAFEMODE_STATUS" == *"Safe mode is ON"* ]]; then
+      echo "$DATE INFO entrypoint-yarn.sh: HDFS is in safe mode. Exiting safe mode."
+      SAFEMODE_STATUS=$(hdfs dfsadmin -safemode leave)
+      echo "$DATE INFO entrypoint-yarn.sh: $SAFEMODE_STATUS"
+  else
+      echo "$DATE INFO entrypoint-yarn.sh: HDFS is not in safe mode."
+  fi
+
+  echo "$DATE INFO entrypoint-yarn.sh: The container $SPARK_WORKLOAD has been initialized"
+
+  echo "$DATE INFO entrypoint-yarn.sh: The cluster initialized successfully!"
 
 elif [ "$SPARK_WORKLOAD" == "worker" ];
 then
-  hdfs namenode -format
+  hdfs namenode -format > /dev/null 2>&1
 
   # start the worker node processes
   hdfs --daemon start datanode
   yarn --daemon start nodemanager
+
+  echo "$DATE INFO entrypoint-yarn.sh: The container $SPARK_WORKLOAD has been initialized"
+
 elif [ "$SPARK_WORKLOAD" == "history" ];
 then
 
-  while ! hdfs dfs -test -d /spark-logs;
+  while ! hdfs dfs -test -d /spark-logs > /dev/null 2>&1;
   do
-    echo "spark-logs doesn't exist yet... retrying"
-    sleep 1;
+    echo "$DATE INFO entrypoint-yarn.sh: spark-logs doesn't exist yet... retrying"
+    sleep 0.5;
   done
-  echo "Exit loop"
+  echo "$DATE INFO entrypoint-yarn.sh: /spark-logs directory created"
+
+  echo "$DATE INFO entrypoint-yarn.sh: The container $SPARK_WORKLOAD has been initialized"
 
   # start the spark history server
-  start-history-server.sh
-
-elif [ "$SPARK_WORKLOAD" == "hive" ];
-then
-  hdfs namenode -format
-
-  # start the hive node processes
-  hdfs --daemon start datanode
-  yarn --daemon start nodemanager
-
-  # create hive directories
-  hdfs dfs -mkdir -p /tmp
-  echo "Created /tmp hdfs dir"
-
-  hdfs dfs -mkdir -p /user/hive
-  echo "Created /user/hive hdfs dir"
-
-  hdfs dfs -mkdir -p /user/hive/warehouse
-  echo "Created /user/hive/warehouse hdfs dir"
-
-  hdfs dfs -chmod g+w /user/hive
-  echo "Granted write to user group /user/hive hdfs dir"
-
-  hdfs dfs -chmod g+w /user/hive/warehouse
-  echo "Granted write to user group /user/hive hdfs dir"
-
-  echo "Setting DB Type"
-  $HIVE_HOME/bin/schematool -dbType derby -initSchema
-  echo "Set DB Type"
-
-  # start hiveserver2
-  echo "Starting hiveserver2"
-  $HIVE_HOME/bin/hiveserver2
-  echo "hiveserver2 Started with success"
+  start-history-server.sh > /dev/null 2>&1
 fi
 
 tail -f /dev/null
