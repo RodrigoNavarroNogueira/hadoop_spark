@@ -6,15 +6,11 @@ import sys
 import time
 from logger.logger import logging
 import subprocess
-from hdfs import InsecureClient
 
 load_dotenv()
 token = os.getenv('API_TOKEN')
-client_id = os.getenv('CLIENT_ID')
-client_secret = os.getenv('CLIENT_SECRET')
 
 url = 'https://us.api.blizzard.com/data/wow/connected-realm/3209/auctions?namespace=dynamic-us&locale=pt_BR'
-command = f'curl -u {client_id}:{client_secret} -d grant_type=client_credentials https://us.battle.net/oauth/token'
 
 if not token:
     logging.error('API token not found. Make sure its set in the .env')
@@ -28,27 +24,22 @@ logging.info('Starting request, please wait')
 
 try:
     response = requests.get(url, headers=headers)
-    all_information = response.json()
+    raw_data = response.json()
     logging.info('Request response OK! Data was extracted')
-
-    auctions = all_information['auctions']
-    data = json.dumps(auctions)
+    data_json = json.dumps(raw_data)
     logging.info('All items in the Azralon server auction house have been collected')
 
 except requests.exceptions.JSONDecodeError:
     logging.error('API token is incorrect, please generate a new token and restart code-server')
-    result = subprocess.run(command, shell=True, text=True, capture_output=True)
-    lista = str(result)
-    breakpoint()
     exit()
 
 time = list(time.localtime())
 
-json_name = f'auctions_{time[0]}-{time[1]}-{time[2]}_{time[3]}-{time[4]}-{time[5]}.json'
+file_name = f'auctions_{time[0]}-{time[1]}-{time[2]}_{time[3]}-{time[4]}-{time[5]}.json'
 
 container_name = "da-spark-yarn-master"
 
-hdfs_path = f"/opt/spark/data/auctions/azralon/bronze/{json_name}"
+hdfs_path = f"/opt/spark/data/wow/azralon/auctions/bronze/{file_name}"
 
 command = f"hdfs dfs -put - {hdfs_path}"
 
@@ -58,7 +49,7 @@ try:
         stdin=subprocess.PIPE,
         text=True
     )
-    process.communicate(input=data)
+    process.communicate(input=data_json)
 
     if process.returncode == 0:
         logging.info('Data successfully uploaded to HDFS!')
