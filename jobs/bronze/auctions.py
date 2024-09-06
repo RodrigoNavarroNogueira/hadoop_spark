@@ -1,4 +1,4 @@
-from logger.logger import logging
+from logger.auctions.logger import logging
 from jobs_functions.functions import *
 
 current_file = 'auctions'
@@ -16,11 +16,7 @@ except requests.exceptions.JSONDecodeError:
     exit()
 
 hdfs_path = create_filename(current_file)
-
 logging.info('The file was created along with its path in HDFS')
 
-try:
-    insert_into_hdfs(hdfs_path, data_bronze)
-
-except subprocess.CalledProcessError as e:
-    logging.error(f'Error executing command: {e}')
+insert_into_hdfs(hdfs_path, data_bronze)
+logging.info('File was successfully inserted into HDFS, ending job!')

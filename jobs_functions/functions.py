@@ -3,7 +3,7 @@ import json
 from dotenv import load_dotenv
 import os
 import time
-from logger.logger import logging
+from logger.auctions.logger import logging
 import subprocess
 
 
@@ -14,13 +14,14 @@ def request_data(url):
 
     if not token:
         logging.error('API token not found. Make sure its set in the .env')
+        exit()
     else:
         response = requests.get(url, headers=headers)
+        
         if response.status_code == 200:
             logging.info('Request response OK! Data was extracted')
-
         else:
-            logging.error('O code não é 200')
+            logging.error('The request response code was not 200 please check')
 
         raw_data = response.json()
         data_bronze = json.dumps(raw_data)
@@ -40,6 +41,7 @@ def insert_into_hdfs(hdfs_path, data_bronze):
     process = subprocess.Popen(
         ["docker", "exec", "-i", container_name, "bash", "-c", command],
         stdin=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         text=True
     )
     process.communicate(input=data_bronze)
@@ -47,5 +49,5 @@ def insert_into_hdfs(hdfs_path, data_bronze):
     if process.returncode == 0:
         logging.info('Data successfully uploaded to HDFS!')
     else:
-        logging.error(f'Error sending data: Return code {process.returncode}')
-
+        logging.error(f'The container is not running please check')
+        exit()
