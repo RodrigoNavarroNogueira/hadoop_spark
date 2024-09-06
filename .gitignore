@@ -27,3 +27,6 @@ logs/auctions/bronze/auctions.log
 jobs/bronze/__pycache__/commodities.cpython-310.pyc
 jobs/bronze/__pycache__/item.cpython-310.pyc
 jobs_functions/__pycache__/functions.cpython-310.pyc
+logs/jobs.log
+logs/item.log
+logs/commodities.log
