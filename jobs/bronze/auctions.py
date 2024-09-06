@@ -1,7 +1,9 @@
-from logger.auctions.logger import logging
+from logger.logger import logger_conf
 from jobs_functions.functions import *
 
 current_file = 'auctions'
+
+logger_conf('/home/navarro/hadoop_spark/logs/auctions.log')
 
 url = 'https://us.api.blizzard.com/data/wow/connected-realm/3209/auctions?namespace=dynamic-us&locale=pt_BR'
 
