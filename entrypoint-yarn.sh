@@ -39,9 +39,6 @@ then
   hdfs dfs -mkdir -p /opt/spark/data
   echo "$DATE INFO entrypoint-yarn.sh: Created /opt/spark/data hdfs dir"
 
-  # copy the data to the data HDFS directory
-  hdfs dfs -copyFromLocal /opt/spark/data/* /opt/spark/data
-
   SAFEMODE_STATUS=$(hdfs dfsadmin -safemode get)
 
   if [[ "$SAFEMODE_STATUS" == *"Safe mode is ON"* ]]; then
@@ -51,6 +48,9 @@ then
   else
       echo "$DATE INFO entrypoint-yarn.sh: HDFS is not in safe mode."
   fi
+
+  # copy the data to the data HDFS directory
+  hdfs dfs -copyFromLocal /opt/spark/data/* /opt/spark/data
 
   echo "$DATE INFO entrypoint-yarn.sh: The container $SPARK_WORKLOAD has been initialized"
 
