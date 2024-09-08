@@ -1,4 +1,9 @@
-from logger.logger import logger_conf
+import sys
+import os
+
+sys.path.append(os.path.abspath('/home/navarro/hadoop_spark'))
+
+from logger.wow_logger import logger_conf
 from jobs_functions.functions import *
 
 current_file = 'item'
@@ -17,7 +22,7 @@ try:
 
 except requests.exceptions.JSONDecodeError:
     logging.error('Could not convert response to json, please check API token')
-    exit()
+    refresh_token(current_file)
 
 hdfs_path = create_filename(current_file)
 logging.info('The file was created along with its path in HDFS')

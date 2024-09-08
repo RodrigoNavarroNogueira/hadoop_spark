@@ -1,10 +1,12 @@
 import requests
 import json
 from dotenv import load_dotenv
+import sys
 import os
 import time
-from logger.logger import logging
+from logger.wow_logger import logging
 import subprocess
+import re
 
 
 def request_data(url: str) -> str:
@@ -16,7 +18,7 @@ def request_data(url: str) -> str:
     param url: The URL to which the request will be made.
     return: The bronze layer data in JSON format as a string.
     """
-    load_dotenv()
+    load_dotenv(override=True)
     token = os.getenv('API_TOKEN')
     headers = {'Authorization': f'Bearer {token}'}
 
@@ -29,11 +31,46 @@ def request_data(url: str) -> str:
         if response.status_code == 200:
             logging.info('Request response OK! Data was extracted')
         else:
-            logging.error('The request response code was not 200 please check')
+            logging.error('The request response code was not 200')
 
         raw_data = response.json()
         data_bronze = json.dumps(raw_data)
         return data_bronze
+
+
+def refresh_token(current_file: str) -> None:
+    """
+    Loads the environment variables CLIENT_ID and CLIENT_SECRET to do a curl, thus overwriting the value of
+    API_TOKEN and executing the script again
+
+    param current_file: The endpoint where we are extracting the data.
+    """
+    load_dotenv(override=True)
+    client_id = os.getenv('CLIENT_ID')
+    client_secret = os.getenv('CLIENT_SECRET')
+
+    logging.info('Starting token refresh')
+
+    command = f'curl -u {client_id}:{client_secret} -d grant_type=client_credentials https://us.battle.net/oauth/token'
+    curl = subprocess.run(command, shell=True, text=True, capture_output=True)
+    curl_str = str(curl)
+    find_token = re.search(r'"access_token":"(.*?)"', curl_str)
+    access_token = find_token.group(1)
+
+    with open('.env', 'r') as file:
+        content_env = file.read()
+
+    content_env = re.sub(r"API_TOKEN = '(.*?)'", f"API_TOKEN = '{access_token}'", content_env)
+    
+    with open('.env', 'w') as file:
+        file.write(content_env)
+        logging.info('The API_TOKEN variable was changed in the .env file')
+
+    logging.info('Restarting the script automatically...')
+
+    new_script_path = f'/home/navarro/hadoop_spark/jobs/bronze/{current_file}.py'
+
+    os.execv(sys.executable, ['python', new_script_path])
 
 
 def create_filename(current_file: str) -> str:

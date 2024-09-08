@@ -30,3 +30,4 @@ jobs_functions/__pycache__/functions.cpython-310.pyc
 logs/jobs.log
 logs/item.log
 logs/commodities.log
+logger/__pycache__/wow_logger.cpython-310.pyc

@@ -31,7 +31,7 @@ then
   yarn --daemon start resourcemanager
   
   # create required directories
-  while ! hdfs dfs -mkdir -p /spark-logs;
+  while ! hdfs dfs -mkdir -p /spark-logs > /dev/null 2>&1;
   do
     echo "$DATE INFO entrypoint-yarn.sh: Failed creating /spark-logs hdfs dir"
   done
